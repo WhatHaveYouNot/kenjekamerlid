@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Druk op de knop en ontdek een willekeurig Nederlands kamerlid.">
+  <title>Ken je Kamerlid</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Space+Mono:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+  <style>
+    /* ── Variables ─────────────────────────────────────────────── */
+    :root {
+      --bg:      #F5F0E8;
+      --surface: #FAFAF5;
+      --ink:     #1A1A1A;
+      --red:     #CC0000;
+      --yellow:  #FFD700;
+      --serif:   'Playfair Display', Georgia, serif;
+      --mono:    'Space Mono', monospace;
+      --hand:    'Caveat', cursive;
+      --border:       3px solid var(--ink);
+      --border-thick: 4px solid var(--ink);
+      --shadow:    5px 5px 0 var(--ink);
+      --shadow-sm: 3px 3px 0 var(--ink);
+    }
+
+    /* ── Reset ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    /* ── Grain overlay ─────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.055;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)'/%3E%3C/svg%3E");
+      background-size: 300px 300px;
+    }
+
+    /* ── Base ──────────────────────────────────────────────────── */
+    body {
+      background-color: var(--bg);
+      font-family: var(--mono);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 80px;
+    }
+
+    /* ── Header ────────────────────────────────────────────────── */
+    .site-header {
+      width: 100%;
+      max-width: 460px;
+      text-align: center;
+      margin-bottom: 28px;
+      user-select: none;
+    }
+    .header-ornament {
+      font-size: 0.8rem;
+      letter-spacing: 0.5em;
+      color: #999;
+      padding-right: 0.5em;
+    }
+    .header-rule {
+      border: none;
+      border-top: 1px solid var(--ink);
+      margin: 5px 0;
+    }
+    .header-rule--thick { border-top-width: 3px; }
+    .site-title {
+      font-family: var(--serif);
+      font-size: clamp(2rem, 9vw, 4.2rem);
+      font-weight: 900;
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      padding: 4px 0;
+    }
+    .site-subtitle {
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    /* ── Slot machine ──────────────────────────────────────────── */
+    .slot-machine {
+      width: 100%;
+      max-width: 460px;
+      background: var(--surface);
+      border: var(--border-thick);
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    .slot-machine__header {
+      background: var(--ink);
+      padding: 9px 20px;
+      text-align: center;
+    }
+    .slot-machine__label {
+      font-family: var(--serif);
+      font-style: italic;
+      color: var(--yellow);
+      font-size: 0.82rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .slot-window {
+      padding: 32px 24px;
+      min-height: 215px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Idle */
+    .slot-idle { text-align: center; }
+    .slot-idle__mark {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 6rem;
+      line-height: 1;
+      color: #cdc8bc;
+      display: block;
+    }
+    .slot-idle__hint {
+      font-size: 0.62rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #aaa;
+      margin-top: 6px;
+      display: block;
+    }
+
+    /* Reel */
+    .slot-reel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+    }
+    .slot-reel__photo {
+      width: 120px;
+      height: 120px;
+      border: var(--border-thick);
+      object-fit: cover;
+      display: block;
+      background: #e2ddd4;
+    }
+    .slot-reel__name {
+      font-family: var(--serif);
+      font-size: clamp(1.2rem, 4vw, 1.6rem);
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* Spinning flicker */
+    .is-spinning .slot-reel__photo,
+    .is-spinning .slot-reel__name {
+      animation: flicker 0.07s steps(1) infinite;
+    }
+    .is-spinning .slot-reel__name { animation-delay: 0.035s; }
+    @keyframes flicker {
+      0%  { filter: brightness(1.1) contrast(1.05); }
+      50% { filter: brightness(0.85) blur(0.8px); }
+      100%{ filter: brightness(1.1) contrast(1.05); }
+    }
+
+    .slot-machine__sep {
+      border: none;
+      border-top: 2px dashed #c5bfb3;
+      margin: 0 24px;
+    }
+
+    /* ── Spin button ───────────────────────────────────────────── */
+    .spin-button {
+      width: 100%;
+      max-width: 460px;
+      background: var(--red);
+      color: #fff;
+      font-family: var(--serif);
+      font-size: clamp(1.1rem, 3.8vw, 1.55rem);
+      font-weight: 900;
+      font-style: italic;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border: var(--border-thick);
+      padding: 18px 24px;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.07s, box-shadow 0.07s, background 0.1s;
+      margin-bottom: 24px;
+      display: block;
+    }
+    .spin-button:hover { background: #d40000; }
+    .spin-button:active {
+      transform: translate(4px, 4px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+    .spin-button:disabled {
+      background: #888;
+      cursor: not-allowed;
+      transform: translate(4px, 4px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+
+    /* ── Profile card ──────────────────────────────────────────── */
+    .profile-card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--surface);
+      border: var(--border-thick);
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+      animation: appear 0.25s ease;
+    }
+    @keyframes appear {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .profile-top {
+      display: flex;
+      border-bottom: var(--border-thick);
+    }
+    .profile-photo-col {
+      border-right: var(--border-thick);
+      padding: 16px;
+      flex-shrink: 0;
+    }
+    .profile-photo {
+      width: 96px;
+      height: 96px;
+      border: 3px solid var(--ink);
+      object-fit: cover;
+      display: block;
+      background: #e2ddd4;
+    }
+    .profile-info-col {
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: center;
+    }
+    .profile-name {
+      font-family: var(--serif);
+      font-size: clamp(1.1rem, 3.8vw, 1.4rem);
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .party-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border: 2px solid var(--ink);
+      box-shadow: var(--shadow-sm);
+      transform: rotate(-1.2deg);
+      width: fit-content;
+    }
+    .profile-location {
+      font-size: 0.8rem;
+      color: #666;
+      font-style: italic;
+    }
+
+    /* Tenure — lined paper */
+    .profile-tenure {
+      padding: 14px 18px;
+      border-bottom: var(--border-thick);
+      font-size: 0.78rem;
+      line-height: 1.75;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 27px,
+        rgba(0,0,0,0.07) 27px,
+        rgba(0,0,0,0.07) 28px
+      );
+      background-position: 0 14px;
+    }
+    .tenure-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #888;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .tenure-count {
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: block;
+      line-height: 1.3;
+    }
+    .tenure-detail {
+      color: #666;
+      font-size: 0.7rem;
+      display: block;
+    }
+
+    /* Post-it */
+    .feitje-section {
+      padding: 16px;
+      background: #ede8de;
+    }
+    .feitje-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #999;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .post-it {
+      background: var(--yellow);
+      padding: 16px 18px 20px;
+      font-family: var(--hand);
+      font-size: 1.22rem;
+      line-height: 1.45;
+      transform: rotate(-1deg);
+      box-shadow: 2px 4px 14px rgba(0,0,0,0.18), inset 0 -2px 5px rgba(0,0,0,0.06);
+      position: relative;
+    }
+    /* Tape strip */
+    .post-it::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 55px;
+      height: 20px;
+      background: rgba(195, 210, 240, 0.65);
+      border: 1px solid rgba(140, 165, 200, 0.3);
+    }
+
+    /* ── Share row ─────────────────────────────────────────────── */
+    .share-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 460px;
+      margin-bottom: 24px;
+      animation: appear 0.25s ease;
+    }
+    .share-btn {
+      flex: 1;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      border: var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.07s, box-shadow 0.07s, background 0.1s;
+      text-align: center;
+    }
+    .share-btn:hover { background: #ece7da; }
+    .share-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+    .share-btn--copied {
+      background: #d4edda;
+      border-color: #27ae60;
+    }
+
+    /* ── Status box ────────────────────────────────────────────── */
+    .status-box {
+      width: 100%;
+      max-width: 460px;
+      padding: 24px;
+      border: var(--border-thick);
+      font-size: 0.82rem;
+      text-align: center;
+      margin-bottom: 16px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .status-box--error {
+      border-color: var(--red);
+      background: #fff5f5;
+      color: var(--red);
+    }
+
+    /* ── Responsive ────────────────────────────────────────────── */
+    @media (max-width: 400px) {
+      body { padding-top: 20px; }
+      .profile-top { flex-direction: column; }
+      .profile-photo-col {
+        border-right: none;
+        border-bottom: var(--border-thick);
+        display: flex;
+        justify-content: center;
+      }
+      .profile-photo { width: 110px; height: 110px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <p class="header-ornament">★ ★ ★</p>
+    <hr class="header-rule header-rule--thick">
+    <h1 class="site-title">Ken je Kamerlid</h1>
+    <hr class="header-rule">
+    <p class="site-subtitle">Tweede Kamer der Staten-Generaal</p>
+  </header>
+
+  <div class="status-box" id="status-box">Kamerleden worden geladen…</div>
+
+  <div class="slot-machine" id="slot-machine" hidden>
+    <div class="slot-machine__header">
+      <span class="slot-machine__label">★ Willekeurig Kamerlid ★</span>
+    </div>
+    <div class="slot-window" id="slot-window">
+      <div class="slot-idle" id="slot-idle">
+        <span class="slot-idle__mark">?</span>
+        <span class="slot-idle__hint">druk op de knop</span>
+      </div>
+      <div class="slot-reel" id="slot-reel" hidden>
+        <img class="slot-reel__photo" id="slot-photo" src="" alt="">
+        <div class="slot-reel__name" id="slot-name"></div>
+      </div>
+    </div>
+    <hr class="slot-machine__sep">
+  </div>
+
+  <button class="spin-button" id="spin-btn" type="button" hidden>
+    VOLGEND KAMERLID
+  </button>
+
+  <div class="profile-card" id="profile-card" hidden>
+    <div class="profile-top">
+      <div class="profile-photo-col">
+        <img class="profile-photo" id="profile-photo" src="" alt="">
+      </div>
+      <div class="profile-info-col">
+        <div class="profile-name" id="profile-name"></div>
+        <div class="party-badge" id="party-badge"></div>
+        <div class="profile-location" id="profile-location"></div>
+      </div>
+    </div>
+    <div class="profile-tenure" id="profile-tenure"></div>
+    <div class="feitje-section">
+      <div class="feitje-label">★ Raar Feitje</div>
+      <div class="post-it" id="post-it"></div>
+    </div>
+  </div>
+
+  <div class="share-row" id="share-row" hidden>
+    <button class="share-btn" id="copy-btn" type="button">📋 Kopieer</button>
+    <button class="share-btn" id="wa-btn" type="button">💬 WhatsApp</button>
+  </div>
+
+  <script>
+    // ── State ────────────────────────────────────────────────────
+    let kamerleden = [];
+    let currentMember = null;
+    let isSpinning = false;
+    let audioCtx = null;
+
+    // ── DOM refs ─────────────────────────────────────────────────
+    const statusBox   = document.getElementById('status-box');
+    const slotMachine = document.getElementById('slot-machine');
+    const spinBtn     = document.getElementById('spin-btn');
+    const slotWindow  = document.getElementById('slot-window');
+    const slotIdle    = document.getElementById('slot-idle');
+    const slotReel    = document.getElementById('slot-reel');
+    const slotPhoto   = document.getElementById('slot-photo');
+    const slotName    = document.getElementById('slot-name');
+    const profileCard = document.getElementById('profile-card');
+    const profilePhoto= document.getElementById('profile-photo');
+    const profileName = document.getElementById('profile-name');
+    const partyBadge  = document.getElementById('party-badge');
+    const profileTenure = document.getElementById('profile-tenure');
+    const postIt      = document.getElementById('post-it');
+    const shareRow    = document.getElementById('share-row');
+    const copyBtn     = document.getElementById('copy-btn');
+    const waBtn       = document.getElementById('wa-btn');
+
+    // ── Audio ────────────────────────────────────────────────────
+    function getAudioCtx() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+
+    function playClick(progress) {
+      try {
+        const ctx  = getAudioCtx();
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'square';
+        const freq = 880 - easeOut(progress) * 620 + (Math.random() - 0.5) * 80;
+        const dur  = 0.028 + progress * 0.04;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(freq * 0.2, 40), ctx.currentTime + dur);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + dur + 0.01);
+      } catch (_) {}
+    }
+
+    function playThud() {
+      try {
+        const ctx  = getAudioCtx();
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(200, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(55, ctx.currentTime + 0.14);
+        gain.gain.setValueAtTime(0.28, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.2);
+      } catch (_) {}
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────
+    function easeOut(t) {
+      return 1 - Math.pow(1 - Math.min(t, 1), 3);
+    }
+
+    function avatarUrl(naam) {
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(naam)}&size=200&background=random&color=fff&bold=true`;
+    }
+
+    function photoUrl(member) {
+      return member.kamerlid_foto || avatarUrl(member.naam);
+    }
+
+    function contrastColor(hex) {
+      if (!hex || hex.length < 7) return '#fff';
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.52 ? '#1A1A1A' : '#FFFFFF';
+    }
+
+    function calcTenure(dateStr) {
+      const start     = new Date(dateStr);
+      const totalDays = Math.floor((Date.now() - start) / 86400000);
+      const years     = Math.floor(totalDays / 365.25);
+      const days      = totalDays - Math.floor(years * 365.25);
+      return { startYear: start.getFullYear(), years, days, dateStr };
+    }
+
+    function getRandomMember(exclude = null) {
+      if (!kamerleden.length) return null;
+      if (kamerleden.length === 1) return kamerleden[0];
+      let m;
+      do { m = kamerleden[Math.floor(Math.random() * kamerleden.length)]; }
+      while (m === exclude);
+      return m;
+    }
+
+    // ── Data ─────────────────────────────────────────────────────
+    async function loadData() {
+      try {
+        const res = await fetch('kamerleden_basis.json');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        kamerleden = await res.json();
+        statusBox.hidden = true;
+        slotMachine.hidden = false;
+        spinBtn.hidden = false;
+      } catch (err) {
+        statusBox.textContent = `Laden mislukt: ${err.message}. Herlaad de pagina om het opnieuw te proberen.`;
+        statusBox.classList.add('status-box--error');
+      }
+    }
+
+    // ── Slot machine ─────────────────────────────────────────────
+    function updateReel(member) {
+      slotPhoto.src = photoUrl(member);
+      slotPhoto.alt = member.naam;
+      slotPhoto.onerror = () => { slotPhoto.src = avatarUrl(member.naam); slotPhoto.onerror = null; };
+      slotName.textContent = member.naam;
+    }
+
+    function showProfile(member) {
+      currentMember = member;
+
+      profilePhoto.src = photoUrl(member);
+      profilePhoto.alt = member.naam;
+      profilePhoto.onerror = () => { profilePhoto.src = avatarUrl(member.naam); profilePhoto.onerror = null; };
+
+      profileName.textContent = member.naam;
+      partyBadge.textContent = member.partij;
+      partyBadge.style.backgroundColor = member.partij_kleur;
+      partyBadge.style.color = contrastColor(member.partij_kleur);
+      document.getElementById('profile-location').textContent = member.woonplaats;
+
+      const tenureDays = member.ancienniteit_dagen;
+      const years = Math.floor(tenureDays / 365.25);
+      const days = Math.floor(tenureDays - years * 365.25);
+      profileTenure.innerHTML = '';
+      const label = document.createElement('span');
+      label.className = 'tenure-label';
+      label.textContent = 'In de politiek actief';
+      const count = document.createElement('span');
+      count.className = 'tenure-count';
+      count.textContent = `${years} jaar en ${days} dagen`;
+      const detail = document.createElement('span');
+      detail.className = 'tenure-detail';
+      detail.textContent = `Actief sinds ${member["Intstallatiedatum 2e kamer"]}`;
+      profileTenure.append(label, count, detail);
+
+      postIt.textContent = member.feit;
+
+      profileCard.hidden = false;
+      shareRow.hidden = false;
+    }
+
+    function spin() {
+      if (isSpinning || !kamerleden.length) return;
+      isSpinning = true;
+      spinBtn.disabled = true;
+      profileCard.hidden = true;
+      shareRow.hidden = true;
+
+      slotIdle.hidden = true;
+      slotReel.hidden = false;
+      slotWindow.classList.add('is-spinning');
+
+      const chosen    = getRandomMember(currentMember);
+      const startTime = Date.now();
+      const duration  = 2500;
+
+      function tick() {
+        const progress = Math.min((Date.now() - startTime) / duration, 1);
+
+        if (progress >= 1) {
+          slotWindow.classList.remove('is-spinning');
+          updateReel(chosen);
+          playThud();
+          isSpinning = false;
+          spinBtn.disabled = false;
+          setTimeout(() => showProfile(chosen), 260);
+          return;
+        }
+
+        updateReel(getRandomMember());
+        playClick(progress);
+        // 65 ms (fast) → 445 ms (slow) via cubic ease-out
+        setTimeout(tick, 65 + easeOut(progress) * 380);
+      }
+
+      tick();
+    }
+
+    // ── Share ────────────────────────────────────────────────────
+    function buildShareText() {
+      if (!currentMember) return '';
+      const { years, days } = calcTenure(currentMember.inPolitiekSinds);
+      return (
+        `Ken jij *${currentMember.naam}* (${currentMember.partij})?\n\n` +
+        `Al *${years} jaar en ${days} dagen* actief in de Tweede Kamer 🗳️\n\n` +
+        `💡 Raar feitje: ${currentMember.raarFeitje}\n\n` +
+        `👉 Ontdekt via *Ken je Kamerlid*`
+      );
+    }
+
+    copyBtn.addEventListener('click', async () => {
+      const text = buildShareText();
+      try {
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const el = document.createElement('textarea');
+          Object.assign(el.style, { position: 'fixed', opacity: '0' });
+          el.value = text;
+          document.body.appendChild(el);
+          el.select();
+          document.execCommand('copy');
+          document.body.removeChild(el);
+        }
+        copyBtn.textContent = '✓ Gekopieerd!';
+        copyBtn.classList.add('share-btn--copied');
+        setTimeout(() => { copyBtn.textContent = '📋 Kopieer'; copyBtn.classList.remove('share-btn--copied'); }, 2000);
+      } catch {
+        copyBtn.textContent = '❌ Niet gelukt';
+        setTimeout(() => { copyBtn.textContent = '📋 Kopieer'; }, 2000);
+      }
+    });
+
+    waBtn.addEventListener('click', () => {
+      window.open(`https://wa.me/?text=${encodeURIComponent(buildShareText())}`, '_blank');
+    });
+
+    spinBtn.addEventListener('click', spin);
+
+    // ── Init ─────────────────────────────────────────────────────
+    loadData();
+  </script>
+</body>
+</html>
