@@ -22,6 +22,7 @@
       --border-thick: 4px solid var(--ink);
       --shadow:    5px 5px 0 var(--ink);
       --shadow-sm: 3px 3px 0 var(--ink);
+      --party: var(--ink); /* overridden per member via JS */
     }
 
     /* ── Reset ─────────────────────────────────────────────────── */
@@ -41,28 +42,42 @@
       background-size: 300px 300px;
     }
 
-    /* ── Base ──────────────────────────────────────────────────── */
+    /* ── Base — full-viewport, no page scroll ──────────────────── */
+    html { height: 100%; }
     body {
       background-color: var(--bg);
       font-family: var(--mono);
       color: var(--ink);
-      min-height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 32px 16px 80px;
+    }
+
+    /* ── Inner scroll container ────────────────────────────────── */
+    .page-scroll {
+      width: 100%;
+      max-width: 460px;
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     /* ── Header ────────────────────────────────────────────────── */
     .site-header {
       width: 100%;
-      max-width: 460px;
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 14px;
       user-select: none;
     }
     .header-ornament {
-      font-size: 0.8rem;
+      font-size: 0.7rem;
       letter-spacing: 0.5em;
       color: #999;
       padding-right: 0.5em;
@@ -70,20 +85,20 @@
     .header-rule {
       border: none;
       border-top: 1px solid var(--ink);
-      margin: 5px 0;
+      margin: 4px 0;
     }
     .header-rule--thick { border-top-width: 3px; }
     .site-title {
       font-family: var(--serif);
-      font-size: clamp(2rem, 9vw, 4.2rem);
+      font-size: clamp(1.8rem, 9vw, 3.4rem);
       font-weight: 900;
       line-height: 1;
       text-transform: uppercase;
       letter-spacing: -0.01em;
-      padding: 4px 0;
+      padding: 3px 0;
     }
     .site-subtitle {
-      font-size: 0.6rem;
+      font-size: 0.55rem;
       letter-spacing: 0.3em;
       text-transform: uppercase;
       color: #666;
@@ -93,28 +108,27 @@
     /* ── Slot machine ──────────────────────────────────────────── */
     .slot-machine {
       width: 100%;
-      max-width: 460px;
       background: var(--surface);
       border: var(--border-thick);
       box-shadow: var(--shadow);
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
     .slot-machine__header {
       background: var(--ink);
-      padding: 9px 20px;
+      padding: 7px 20px;
       text-align: center;
     }
     .slot-machine__label {
       font-family: var(--serif);
       font-style: italic;
       color: var(--yellow);
-      font-size: 0.82rem;
+      font-size: 0.75rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
     }
     .slot-window {
-      padding: 32px 24px;
-      min-height: 215px;
+      padding: 20px 24px;
+      min-height: 160px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -125,17 +139,17 @@
     .slot-idle__mark {
       font-family: var(--serif);
       font-style: italic;
-      font-size: 6rem;
+      font-size: 5rem;
       line-height: 1;
       color: #cdc8bc;
       display: block;
     }
     .slot-idle__hint {
-      font-size: 0.62rem;
+      font-size: 0.6rem;
       letter-spacing: 0.3em;
       text-transform: uppercase;
       color: #aaa;
-      margin-top: 6px;
+      margin-top: 4px;
       display: block;
     }
 
@@ -144,12 +158,12 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      gap: 10px;
       width: 100%;
     }
     .slot-reel__photo {
-      width: 120px;
-      height: 120px;
+      width: 96px;
+      height: 96px;
       border: var(--border-thick);
       object-fit: cover;
       display: block;
@@ -157,7 +171,7 @@
     }
     .slot-reel__name {
       font-family: var(--serif);
-      font-size: clamp(1.2rem, 4vw, 1.6rem);
+      font-size: clamp(1.1rem, 4vw, 1.4rem);
       font-weight: 700;
       text-align: center;
       line-height: 1.2;
@@ -184,21 +198,20 @@
     /* ── Spin button ───────────────────────────────────────────── */
     .spin-button {
       width: 100%;
-      max-width: 460px;
       background: var(--red);
       color: #fff;
       font-family: var(--serif);
-      font-size: clamp(1.1rem, 3.8vw, 1.55rem);
+      font-size: clamp(1rem, 3.8vw, 1.35rem);
       font-weight: 900;
       font-style: italic;
       letter-spacing: 0.05em;
       text-transform: uppercase;
       border: var(--border-thick);
-      padding: 18px 24px;
+      padding: 14px 24px;
       cursor: pointer;
       box-shadow: var(--shadow);
       transition: transform 0.07s, box-shadow 0.07s, background 0.1s;
-      margin-bottom: 24px;
+      margin-bottom: 14px;
       display: block;
     }
     .spin-button:hover { background: #d40000; }
@@ -212,139 +225,148 @@
       transform: translate(4px, 4px);
       box-shadow: 1px 1px 0 var(--ink);
     }
+    .spin-button:focus-visible {
+      outline: 3px solid var(--ink);
+      outline-offset: 3px;
+    }
 
     /* ── Profile card ──────────────────────────────────────────── */
     .profile-card {
       width: 100%;
-      max-width: 460px;
       background: var(--surface);
       border: var(--border-thick);
       box-shadow: var(--shadow);
-      margin-bottom: 14px;
+      margin-bottom: 10px;
       animation: appear 0.25s ease;
+      overflow: hidden; /* keep rounded party-header inside border */
     }
     @keyframes appear {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    .profile-top {
+    /* Coloured party header strip */
+    .profile-header {
       display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
       border-bottom: var(--border-thick);
+      background: var(--ink); /* overridden by JS */
     }
-    .profile-photo-col {
-      border-right: var(--border-thick);
-      padding: 16px;
+    .profile-header__logo-wrap {
       flex-shrink: 0;
+      width: 60px;
+      height: 60px;
+      background: rgba(255,255,255,0.92);
+      border: 3px solid rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px;
     }
-    .profile-photo {
-      width: 96px;
-      height: 96px;
-      border: 3px solid var(--ink);
-      object-fit: cover;
+    .party-logo {
+      width: 50px;
+      height: 50px;
+      object-fit: contain;
       display: block;
-      background: #e2ddd4;
     }
-    .profile-info-col {
-      padding: 16px;
+    .profile-header__info {
       flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      justify-content: center;
+      gap: 4px;
     }
     .profile-name {
       font-family: var(--serif);
-      font-size: clamp(1.1rem, 3.8vw, 1.4rem);
+      font-size: clamp(1rem, 3.5vw, 1.2rem);
       font-weight: 700;
-      line-height: 1.2;
+      line-height: 1.15;
+      color: #fff; /* overridden by JS */
     }
-    .party-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      font-family: var(--mono);
-      font-size: 0.6rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      border: 2px solid var(--ink);
-      box-shadow: var(--shadow-sm);
-      transform: rotate(-1.2deg);
-      width: fit-content;
+    .profile-meta {
+      font-size: 0.68rem;
+      line-height: 1.4;
+      color: rgba(255,255,255,0.8); /* overridden by JS */
     }
-    .profile-location {
-      font-size: 0.8rem;
-      color: #666;
-      font-style: italic;
+    .profile-photo {
+      flex-shrink: 0;
+      width: 76px;
+      height: 76px;
+      border: 3px solid rgba(255,255,255,0.5);
+      object-fit: cover;
+      display: block;
+      background: #c8c3ba;
     }
 
-    /* Tenure — lined paper */
+    /* Tenure — lined paper with party accent border */
     .profile-tenure {
-      padding: 14px 18px;
+      padding: 10px 14px 10px 16px;
       border-bottom: var(--border-thick);
-      font-size: 0.78rem;
-      line-height: 1.75;
+      border-left: 5px solid var(--ink); /* overridden by JS */
+      font-size: 0.75rem;
+      line-height: 1.7;
       background: repeating-linear-gradient(
         to bottom,
         transparent 0px,
-        transparent 27px,
-        rgba(0,0,0,0.07) 27px,
-        rgba(0,0,0,0.07) 28px
+        transparent 26px,
+        rgba(0,0,0,0.07) 26px,
+        rgba(0,0,0,0.07) 27px
       );
-      background-position: 0 14px;
+      background-position: 0 10px;
     }
     .tenure-label {
-      font-size: 0.58rem;
+      font-size: 0.55rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: #888;
       display: block;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
     .tenure-count {
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 700;
       display: block;
-      line-height: 1.3;
+      line-height: 1.2;
     }
     .tenure-detail {
       color: #666;
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       display: block;
     }
 
     /* Post-it */
     .feitje-section {
-      padding: 16px;
+      padding: 12px 14px 14px;
       background: #ede8de;
     }
     .feitje-label {
-      font-size: 0.58rem;
+      font-size: 0.55rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: #999;
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
+      color: var(--ink); /* overridden by JS */
     }
     .post-it {
       background: var(--yellow);
-      padding: 16px 18px 20px;
+      padding: 12px 14px 16px;
       font-family: var(--hand);
-      font-size: 1.22rem;
-      line-height: 1.45;
+      font-size: 1.05rem;
+      line-height: 1.4;
       transform: rotate(-1deg);
       box-shadow: 2px 4px 14px rgba(0,0,0,0.18), inset 0 -2px 5px rgba(0,0,0,0.06);
       position: relative;
     }
-    /* Tape strip */
     .post-it::before {
       content: '';
       position: absolute;
       top: -10px;
       left: 50%;
       transform: translateX(-50%);
-      width: 55px;
-      height: 20px;
+      width: 50px;
+      height: 18px;
       background: rgba(195, 210, 240, 0.65);
       border: 1px solid rgba(140, 165, 200, 0.3);
     }
@@ -354,15 +376,14 @@
       display: flex;
       gap: 10px;
       width: 100%;
-      max-width: 460px;
-      margin-bottom: 24px;
+      margin-bottom: 4px;
       animation: appear 0.25s ease;
     }
     .share-btn {
       flex: 1;
-      padding: 10px 12px;
+      padding: 8px 10px;
       font-family: var(--mono);
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 700;
       border: var(--border);
       background: var(--surface);
@@ -384,12 +405,11 @@
     /* ── Status box ────────────────────────────────────────────── */
     .status-box {
       width: 100%;
-      max-width: 460px;
-      padding: 24px;
+      padding: 20px;
       border: var(--border-thick);
       font-size: 0.82rem;
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       background: var(--surface);
       box-shadow: var(--shadow);
     }
@@ -400,74 +420,74 @@
     }
 
     /* ── Responsive ────────────────────────────────────────────── */
-    @media (max-width: 400px) {
-      body { padding-top: 20px; }
-      .profile-top { flex-direction: column; }
-      .profile-photo-col {
-        border-right: none;
-        border-bottom: var(--border-thick);
-        display: flex;
-        justify-content: center;
-      }
-      .profile-photo { width: 110px; height: 110px; }
+    @media (max-width: 340px) {
+      .profile-header { gap: 10px; padding: 10px 12px; }
+      .profile-photo  { width: 60px; height: 60px; }
+      .profile-header__logo-wrap { width: 48px; height: 48px; }
+      .party-logo { width: 38px; height: 38px; }
     }
   </style>
 </head>
 <body>
 
-  <header class="site-header">
-    <p class="header-ornament">★ ★ ★</p>
-    <hr class="header-rule header-rule--thick">
-    <h1 class="site-title">Ken je Kamerlid</h1>
-    <hr class="header-rule">
-    <p class="site-subtitle">Tweede Kamer der Staten-Generaal</p>
-  </header>
+  <div class="page-scroll">
 
-  <div class="status-box" id="status-box">Kamerleden worden geladen…</div>
+    <header class="site-header">
+      <p class="header-ornament">★ ★ ★</p>
+      <hr class="header-rule header-rule--thick">
+      <h1 class="site-title">Ken je Kamerlid</h1>
+      <hr class="header-rule">
+      <p class="site-subtitle">Tweede Kamer der Staten-Generaal</p>
+    </header>
 
-  <div class="slot-machine" id="slot-machine" hidden>
-    <div class="slot-machine__header">
-      <span class="slot-machine__label">★ Willekeurig Kamerlid ★</span>
-    </div>
-    <div class="slot-window" id="slot-window">
-      <div class="slot-idle" id="slot-idle">
-        <span class="slot-idle__mark">?</span>
-        <span class="slot-idle__hint">druk op de knop</span>
+    <div class="status-box" id="status-box">Kamerleden worden geladen…</div>
+
+    <div class="slot-machine" id="slot-machine" hidden>
+      <div class="slot-machine__header">
+        <span class="slot-machine__label">★ Willekeurig Kamerlid ★</span>
       </div>
-      <div class="slot-reel" id="slot-reel" hidden>
-        <img class="slot-reel__photo" id="slot-photo" src="" alt="">
-        <div class="slot-reel__name" id="slot-name"></div>
+      <div class="slot-window" id="slot-window">
+        <div class="slot-idle" id="slot-idle">
+          <span class="slot-idle__mark">?</span>
+          <span class="slot-idle__hint">druk op de knop</span>
+        </div>
+        <div class="slot-reel" id="slot-reel" hidden>
+          <img class="slot-reel__photo" id="slot-photo" src="" alt="">
+          <div class="slot-reel__name" id="slot-name"></div>
+        </div>
       </div>
+      <hr class="slot-machine__sep">
     </div>
-    <hr class="slot-machine__sep">
-  </div>
 
-  <button class="spin-button" id="spin-btn" type="button" hidden>
-    VOLGEND KAMERLID
-  </button>
+    <button class="spin-button" id="spin-btn" type="button" hidden>
+      VOLGEND KAMERLID
+    </button>
 
-  <div class="profile-card" id="profile-card" hidden>
-    <div class="profile-top">
-      <div class="profile-photo-col">
+    <div class="profile-card" id="profile-card" hidden>
+      <!-- Party-coloured header: logo + name/meta + photo -->
+      <div class="profile-header" id="profile-header">
+        <div class="profile-header__logo-wrap">
+          <img class="party-logo" id="party-logo" src="" alt="">
+        </div>
+        <div class="profile-header__info">
+          <div class="profile-name" id="profile-name"></div>
+          <div class="profile-meta" id="profile-meta"></div>
+        </div>
         <img class="profile-photo" id="profile-photo" src="" alt="">
       </div>
-      <div class="profile-info-col">
-        <div class="profile-name" id="profile-name"></div>
-        <div class="party-badge" id="party-badge"></div>
-        <div class="profile-location" id="profile-location"></div>
+      <div class="profile-tenure" id="profile-tenure"></div>
+      <div class="feitje-section" id="feitje-section">
+        <div class="feitje-label" id="feitje-label">★ Raar Feitje</div>
+        <div class="post-it" id="post-it"></div>
       </div>
     </div>
-    <div class="profile-tenure" id="profile-tenure"></div>
-    <div class="feitje-section">
-      <div class="feitje-label">★ Raar Feitje</div>
-      <div class="post-it" id="post-it"></div>
-    </div>
-  </div>
 
-  <div class="share-row" id="share-row" hidden>
-    <button class="share-btn" id="copy-btn" type="button">📋 Kopieer</button>
-    <button class="share-btn" id="wa-btn" type="button">💬 WhatsApp</button>
-  </div>
+    <div class="share-row" id="share-row" hidden>
+      <button class="share-btn" id="copy-btn" type="button">📋 Kopieer</button>
+      <button class="share-btn" id="wa-btn" type="button">💬 WhatsApp</button>
+    </div>
+
+  </div><!-- /.page-scroll -->
 
   <script>
     // ── State ────────────────────────────────────────────────────
@@ -477,27 +497,36 @@
     let audioCtx = null;
 
     // ── DOM refs ─────────────────────────────────────────────────
-    const statusBox   = document.getElementById('status-box');
-    const slotMachine = document.getElementById('slot-machine');
-    const spinBtn     = document.getElementById('spin-btn');
-    const slotWindow  = document.getElementById('slot-window');
-    const slotIdle    = document.getElementById('slot-idle');
-    const slotReel    = document.getElementById('slot-reel');
-    const slotPhoto   = document.getElementById('slot-photo');
-    const slotName    = document.getElementById('slot-name');
-    const profileCard = document.getElementById('profile-card');
-    const profilePhoto= document.getElementById('profile-photo');
-    const profileName = document.getElementById('profile-name');
-    const partyBadge  = document.getElementById('party-badge');
+    const statusBox     = document.getElementById('status-box');
+    const slotMachine   = document.getElementById('slot-machine');
+    const spinBtn       = document.getElementById('spin-btn');
+    const slotWindow    = document.getElementById('slot-window');
+    const slotIdle      = document.getElementById('slot-idle');
+    const slotReel      = document.getElementById('slot-reel');
+    const slotPhoto     = document.getElementById('slot-photo');
+    const slotName      = document.getElementById('slot-name');
+    const profileCard   = document.getElementById('profile-card');
+    const profileHeader = document.getElementById('profile-header');
+    const profilePhoto  = document.getElementById('profile-photo');
+    const profileName   = document.getElementById('profile-name');
+    const profileMeta   = document.getElementById('profile-meta');
+    const partyLogo     = document.getElementById('party-logo');
     const profileTenure = document.getElementById('profile-tenure');
-    const postIt      = document.getElementById('post-it');
-    const shareRow    = document.getElementById('share-row');
-    const copyBtn     = document.getElementById('copy-btn');
-    const waBtn       = document.getElementById('wa-btn');
+    const feitjeSection = document.getElementById('feitje-section');
+    const feitjeLabel   = document.getElementById('feitje-label');
+    const postIt        = document.getElementById('post-it');
+    const shareRow      = document.getElementById('share-row');
+    const copyBtn       = document.getElementById('copy-btn');
+    const waBtn         = document.getElementById('wa-btn');
 
     // ── Audio ────────────────────────────────────────────────────
     function getAudioCtx() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
       return audioCtx;
     }
 
@@ -550,20 +579,31 @@
       return member.kamerlid_foto || avatarUrl(member.naam);
     }
 
+    /** Returns '#1A1A1A' or '#FFFFFF' depending on luminance of hex colour. */
     function contrastColor(hex) {
-      if (!hex || hex.length < 7) return '#fff';
+      if (!hex || hex.length < 7) return '#FFFFFF';
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
       return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.52 ? '#1A1A1A' : '#FFFFFF';
     }
 
-    function calcTenure(dateStr) {
-      const start     = new Date(dateStr);
-      const totalDays = Math.floor((Date.now() - start) / 86400000);
-      const years     = Math.floor(totalDays / 365.25);
-      const days      = totalDays - Math.floor(years * 365.25);
-      return { startYear: start.getFullYear(), years, days, dateStr };
+    /** Slightly lighten or darken a hex colour by a ratio (-1…1). */
+    function shadeColor(hex, ratio) {
+      if (!hex || hex.length < 7) return hex;
+      let r = parseInt(hex.slice(1, 3), 16);
+      let g = parseInt(hex.slice(3, 5), 16);
+      let b = parseInt(hex.slice(5, 7), 16);
+      if (ratio > 0) {
+        r = Math.round(r + (255 - r) * ratio);
+        g = Math.round(g + (255 - g) * ratio);
+        b = Math.round(b + (255 - b) * ratio);
+      } else {
+        r = Math.round(r * (1 + ratio));
+        g = Math.round(g * (1 + ratio));
+        b = Math.round(b * (1 + ratio));
+      }
+      return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
     }
 
     function getRandomMember(exclude = null) {
@@ -601,32 +641,56 @@
     function showProfile(member) {
       currentMember = member;
 
+      const kleur     = member.partij_kleur || '#1A1A1A';
+      const textColor = contrastColor(kleur);
+      const mutedColor = textColor === '#FFFFFF'
+        ? 'rgba(255,255,255,0.72)'
+        : 'rgba(0,0,0,0.55)';
+
+      // ── Party-coloured header ──
+      profileHeader.style.background = kleur;
+
+      // Party logo (always shown — white background box ensures contrast)
+      partyLogo.src = member.partij_logo || '';
+      partyLogo.alt = member.partij || '';
+      partyLogo.onerror = () => { partyLogo.onerror = null; };
+
+      // Member photo
       profilePhoto.src = photoUrl(member);
       profilePhoto.alt = member.naam;
       profilePhoto.onerror = () => { profilePhoto.src = avatarUrl(member.naam); profilePhoto.onerror = null; };
+      profilePhoto.style.borderColor = shadeColor(kleur, textColor === '#FFFFFF' ? 0.3 : -0.15);
 
+      // Name + meta (age, woonplaats)
       profileName.textContent = member.naam;
-      partyBadge.textContent = member.partij;
-      partyBadge.style.backgroundColor = member.partij_kleur;
-      partyBadge.style.color = contrastColor(member.partij_kleur);
-      document.getElementById('profile-location').textContent = member.woonplaats;
+      profileName.style.color = textColor;
 
-      const tenureDays = member.ancienniteit_dagen;
+      const metaParts = [];
+      if (member.leeftijd) metaParts.push(`${member.leeftijd} jaar`);
+      if (member.woonplaats) metaParts.push(member.woonplaats);
+      profileMeta.textContent = metaParts.join(' · ');
+      profileMeta.style.color = mutedColor;
+
+      // ── Tenure section — party accent left-border ──
+      const tenureDays = member.ancienniteit_dagen || 0;
       const years = Math.floor(tenureDays / 365.25);
-      const days = Math.floor(tenureDays - years * 365.25);
+      const days  = Math.floor(tenureDays - years * 365.25);
+      profileTenure.style.borderLeftColor = kleur;
       profileTenure.innerHTML = '';
-      const label = document.createElement('span');
+      const label  = document.createElement('span');
       label.className = 'tenure-label';
       label.textContent = 'In de politiek actief';
-      const count = document.createElement('span');
+      const count  = document.createElement('span');
       count.className = 'tenure-count';
       count.textContent = `${years} jaar en ${days} dagen`;
       const detail = document.createElement('span');
       detail.className = 'tenure-detail';
-      detail.textContent = `Actief sinds ${member["Intstallatiedatum 2e kamer"]}`;
+      detail.textContent = `Actief sinds ${member['Intstallatiedatum 2e kamer'] || ''}`;
       profileTenure.append(label, count, detail);
 
-      postIt.textContent = member.feit;
+      // ── Feitje section — party accent on label ──
+      feitjeLabel.style.color = kleur;
+      postIt.textContent = member.feit || '';
 
       profileCard.hidden = false;
       shareRow.hidden = false;
@@ -636,6 +700,11 @@
       if (isSpinning || !kamerleden.length) return;
       isSpinning = true;
       spinBtn.disabled = true;
+
+      // Ensure AudioContext runs inside user gesture
+      getAudioCtx();
+
+      slotMachine.hidden = false;
       profileCard.hidden = true;
       shareRow.hidden = true;
 
@@ -656,13 +725,15 @@
           playThud();
           isSpinning = false;
           spinBtn.disabled = false;
-          setTimeout(() => showProfile(chosen), 260);
+          setTimeout(() => {
+            slotMachine.hidden = true;
+            showProfile(chosen);
+          }, 280);
           return;
         }
 
         updateReel(getRandomMember());
         playClick(progress);
-        // 65 ms (fast) → 445 ms (slow) via cubic ease-out
         setTimeout(tick, 65 + easeOut(progress) * 380);
       }
 
@@ -672,11 +743,13 @@
     // ── Share ────────────────────────────────────────────────────
     function buildShareText() {
       if (!currentMember) return '';
-      const { years, days } = calcTenure(currentMember.inPolitiekSinds);
+      const tenureDays = currentMember.ancienniteit_dagen || 0;
+      const years = Math.floor(tenureDays / 365.25);
+      const days  = Math.floor(tenureDays - years * 365.25);
       return (
         `Ken jij *${currentMember.naam}* (${currentMember.partij})?\n\n` +
-        `Al *${years} jaar en ${days} dagen* actief in de Tweede Kamer 🗳️\n\n` +
-        `💡 Raar feitje: ${currentMember.raarFeitje}\n\n` +
+        `${currentMember.leeftijd ? `${currentMember.leeftijd} jaar oud` : ''} — al *${years} jaar en ${days} dagen* actief in de Tweede Kamer 🗳️\n\n` +
+        `💡 Raar feitje: ${currentMember.feit || ''}\n\n` +
         `👉 Ontdekt via *Ken je Kamerlid*`
       );
     }
@@ -710,7 +783,6 @@
 
     spinBtn.addEventListener('click', spin);
 
-    // ── Init ─────────────────────────────────────────────────────
     loadData();
   </script>
 </body>
