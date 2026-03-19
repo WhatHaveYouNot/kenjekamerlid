@@ -1,177 +1,301 @@
-// Volledige kamerleden array uit kamerleden-3.json (met foto_url)
-let kamerleden = [];
+/* ─────────────────────────────────────────────────────────────────────
+   Ken je Kamerlid — script.js
+   Three-state quiz: cover → reveal → fact
+   Data from kamerleden_basis.json — no external API.
+   ───────────────────────────────────────────────────────────────────── */
 
-async function loadData() {
-  try {
-    const response = await fetch('kamerleden_basis.json');
-    kamerleden = await response.json();
-  } catch (error) {
-    console.error('Error loading data:', error);
+/* ── App state ──────────────────────────────────────────────────────── */
+let kamerleden    = [];      // full array from JSON
+let queue         = [];      // shuffled index array
+let queuePos      = 0;       // current position in queue
+let currentMember = null;    // currently displayed MP
+
+/* ── DOM refs ────────────────────────────────────────────────────────── */
+const body        = document.body;
+const statusMsg   = document.getElementById('status-msg');
+const photo       = document.getElementById('photo');
+const partyLogo   = document.getElementById('party-logo');
+const mpName      = document.getElementById('mp-name');
+const mpPartyLbl  = document.getElementById('mp-party-label');
+const mpMeta      = document.getElementById('mp-meta');
+const factText    = document.getElementById('fact-text');
+const waBtn       = document.getElementById('wa-btn');
+const copyBtn     = document.getElementById('copy-btn');
+const revealBtn   = document.getElementById('reveal-btn');
+const nextBtn     = document.getElementById('next-btn');
+const streakEl    = document.getElementById('streak-count');
+
+/* ── Streak (persists within session) ──────────────────────────────── */
+let streak = parseInt(sessionStorage.getItem('kk-streak') || '0', 10);
+streakEl.textContent = streak;
+
+function incrementStreak() {
+  streak += 1;
+  sessionStorage.setItem('kk-streak', String(streak));
+  streakEl.textContent = streak;
+}
+
+/* ── Shuffle / queue ─────────────────────────────────────────────────── */
+
+/** Fisher-Yates shuffle — returns a new array. */
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
+  return a;
 }
 
-/** Normalise a string into a safe filename segment. */
-function toFileName(str) {
-  return str
-    .toLowerCase()
-    .replace(/[áàäâãå]/g, "a")
-    .replace(/[éèëê]/g, "e")
-    .replace(/[íìïî]/g, "i")
-    .replace(/[óòöôõ]/g, "o")
-    .replace(/[úùüû]/g, "u")
-    .replace(/[ç]/g, "c")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+/** Build (or rebuild) the shuffled index queue. */
+function buildQueue() {
+  queue    = shuffle(kamerleden.map((_, i) => i));
+  queuePos = 0;
 }
 
-/** Return a human-readable duration string from a date string to now. */
-function getMembershipDuration(dateString) {
-  const diffMs = Date.now() - new Date(dateString).getTime();
-  const years  = Math.floor(diffMs / (365.25 * 24 * 60 * 60 * 1000));
-  const months = Math.floor((diffMs / (30.44 * 24 * 60 * 60 * 1000)) % 12);
-
-  if (years === 0 && months === 0) return "minder dan een maand";
-  const parts = [];
-  if (years  > 0) parts.push(`${years} jaar`);
-  if (months > 0) parts.push(`${months} maand`);
-  return parts.join(" en ");
-}
-
-/** Return milestone badge data for the given year count, or null. */
-function getMilestoneBadge(years) {
-  if (years >= 25) return { label: "25 jaar kamerlid", modifier: "--25" };
-  if (years >= 15) return { label: "15 jaar kamerlid", modifier: "--15" };
-  if (years >= 10) return { label: "10 jaar kamerlid", modifier: "--10" };
-  if (years >= 5)  return { label: "5 jaar kamerlid",  modifier: "--5"  };
-  if (years >= 1)  return { label: "1 jaar kamerlid",  modifier: ""     };
-  return null;
-}
-
-/** Build and render the bio section using the DOM API (no innerHTML). */
-function renderBio(member) {
-  const bioEl = document.getElementById("bio");
-  bioEl.innerHTML = "";
-
-  if (!member) return;
-
-  const nameEl = document.createElement("strong");
-  nameEl.textContent = member.naam;
-  bioEl.appendChild(nameEl);
-
-  const rows = [];
-
-  if (member.type === "kamerlid") {
-    if (member.partij) rows.push(["Partij", member.partij]);
-  } else if (member.type === "bewindspersoon") {
-    if (member.portefeuille) rows.push(["Portefeuille", member.portefeuille]);
-  }
-
-  if (member.geboortedatum) {
-    const age = Math.floor((Date.now() - new Date(member.geboortedatum).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-    rows.push(["Leeftijd", `${age} jaar`]);
-  }
-
-  if (member.first_entry_tweede_kamer) {
-    const duration = getMembershipDuration(member.first_entry_tweede_kamer);
-    rows.push(["In de politiek sinds", `${member.first_entry_tweede_kamer} (${duration})`]);
-  }
-
-  rows.push(["Functie", member.huidige_functie]);
-
-  for (const [label, value] of rows) {
-    const span = document.createElement("span");
-    span.textContent = `${label}: ${value}`;
-    bioEl.appendChild(span);
-  }
-
-  // No badges for now, since no tenure calculation for badges
-}
-
-let lastIndex = -1;
-
-function getRandomIndex() {
-  if (kamerleden.length <= 1) return 0;
-  let idx;
-  do { idx = Math.floor(Math.random() * kamerleden.length); }
-  while (idx === lastIndex);
-  lastIndex = idx;
-  return idx;
-}
-
-function showFact(animated = true) {
-  // Kies persoon eerst
-  const member = kamerleden[getRandomIndex()];
-
-  // Gekste geschenken uit JSON
-  const gifts = [
-    { kamerlid: "Abassi, I. el (Ismail)", partij: "DENK", datum: "6-12-2025", geschenk: "Ontvangen van La7yati baardolie. De waarde is onbekend", waarom_opvallend: "opvallend persoonlijk verzorgingsproduct" },
-    { kamerlid: "Abassi, I. el (Ismail)", partij: "DENK", datum: "18-11-2025", geschenk: "Ontvangen van de “Sport gaat niet vanzelf. Politiek, kom in beweging!” drie ballen ter felicitatie met de nieuwe kamerperiode. De waarde is onbekend.", waarom_opvallend: "absurde letterlijke campagnestunt" },
-    { kamerlid: "Brekelmans, R.P. (Ruben)", partij: "VVD", datum: "17-11-2025", geschenk: "Ontvangen van de Gemeente Arnhem een fietspomp. De waarde is onbekend. Geschonken aan derden.", waarom_opvallend: "heel praktisch maar vrij random" },
-    { kamerlid: "Plas, C.A.M. van der (Caroline)", partij: "BBB", datum: "1-7-2025", geschenk: "Ontvangen een bordje kippenvleugels, een haring, twee toastjes met ganzenborst, een klein schaaltje kalfsvlees, aardbeien en bessen tijdens evenement NL Voedt in Nieuwspoort, georganiseerd door fruit-, groenten-, vis- en vleessector. De geschatte waarde is €25.", waarom_opvallend: "feitelijk een geregistreerd snackbord" },
-    { kamerlid: "Bosma, M. (Martin)", partij: "PVV", datum: "22-5-2025", geschenk: "Ontvangen per post geurkaarsen van de heer Abdullah bin Salim bin Hamad Al Harthi, Sultan van Oman. De waarde is onbekend.", waarom_opvallend: "huiselijk cadeau in politieke context" },
-    { kamerlid: "Bikker, M.H. (Mirjam)", partij: "ChristenUnie", datum: "22-1-2025", geschenk: "Ontvangen van de SGP-fractie voor 25 jaar CU een olijfboom. De waarde is onbekend.", waarom_opvallend: "levend cadeau in plaats van standaard boek of bloemen" },
-    { kamerlid: "Bamenga, P. (Mpanzu)", partij: "D66", datum: "22-9-2024", geschenk: "Ontvangen van de burgemeester van de gemeente Weert een kaartje voor een voetbalwedstrijd van PSV, een lunch en een vlaai ter waarde van €150,-.", waarom_opvallend: "lunch plus vlaai voelt heerlijk provinciaal" },
-    { kamerlid: "Zanten, C.R. van (Claudia)", partij: "BBB", datum: "17-9-2024", geschenk: "Ontvangen van Kappersakademie Rotterdam een Kérastase Chroma Absolu, shampoo 250 ml ter waarde van € 20,95.", waarom_opvallend: "persoonlijk haarproduct als politiek cadeau" },
-    { kamerlid: "Baarle, S.R.T. van (Stephan)", partij: "DENK", datum: "18-4-2024", geschenk: "Ontvangen van de gemeente Den Helder een koffiemok en 5 dropjes. De waarde is onbekend.", waarom_opvallend: "extreem specifiek en klein geschenk" },
-    { kamerlid: "Campen, A.A.H. van (Thom)", partij: "VVD", datum: "10-1-2024", geschenk: "Ontvangen van de Nederlandse Zuivel Organisatie een kaasschaaf van het merk Boska. De waarde is onbekend.", waarom_opvallend: "klassiek Nederlands maar toch gek als Kamergeschenk" }
-  ];
-  // Toon gekste geschenk alleen voor kamerleden
-  const giftContent = document.getElementById("gift-content");
-  if (member.type === "kamerlid") {
-    // Zoek geschenk bij kamerlid (match op naam en partij)
-    const gift = gifts.find(g => {
-      // Match op achternaam en partij
-      const naamNorm = member.naam.toLowerCase().split(" ").pop();
-      return g.kamerlid.toLowerCase().includes(naamNorm) && g.partij === member.partij;
-    });
-    if (gift) {
-      giftContent.innerHTML = `
-        <div class="gift-glass">
-          <div class="gift-title">Gekste geschenk</div>
-          <div class="gift-desc"><strong>${gift.geschenk}</strong></div>
-          <div class="gift-meta">${gift.datum}</div>
-        </div>`;
-    } else {
-      giftContent.innerHTML = '';
+/** Pop next member from queue; reshuffles when exhausted. */
+function dequeueNext() {
+  if (queuePos >= queue.length) {
+    buildQueue();
+    // Avoid immediate repeat: if the reshuffled queue starts with the
+    // same member we just showed, move them to the end.
+    if (currentMember && kamerleden[queue[0]] === currentMember && queue.length > 1) {
+      queue.push(queue.shift());
     }
-  } else {
-    giftContent.innerHTML = '';
   }
-
-  const nameEl     = document.getElementById("politician-name");
-  const photoEl    = document.getElementById("politician-photo");
-  const partyLogoEl = document.getElementById("party-logo");
-
-  // Gebruik foto_url als bron, anders fallback naar lokale jpg
-  if (member.foto_url && member.foto_url.trim() !== "") {
-    photoEl.src = member.foto_url;
-    photoEl.alt = member.naam;
-    photoEl.onerror = () => { photoEl.src = "assets/leden/placeholder.svg"; photoEl.onerror = null; };
-  } else {
-    photoEl.src = `assets/leden/${toFileName(member.naam)}.jpg`;
-    photoEl.alt = member.naam;
-    photoEl.onerror = () => { photoEl.src = "assets/leden/placeholder.svg"; photoEl.onerror = null; };
-  }
-
-  // Party logo: use partij_logo_url if available, else fallback
-  if (member.partij_logo_url && member.partij_logo_url.trim() !== "") {
-    partyLogoEl.src = member.partij_logo_url;
-    partyLogoEl.alt = member.partij || "Partij";
-    partyLogoEl.onerror = () => { partyLogoEl.src = "assets/partijen/placeholder.svg"; partyLogoEl.onerror = null; };
-  } else {
-    partyLogoEl.src = `assets/partijen/${toFileName(member.partij || "placeholder")}.svg`;
-    partyLogoEl.alt = member.partij || "Partij";
-    partyLogoEl.onerror = () => { partyLogoEl.src = "assets/partijen/placeholder.svg"; partyLogoEl.onerror = null; };
-  }
-
-  renderBio(member);
-
-  // Update name
-  nameEl.textContent = member.naam;
+  return kamerleden[queue[queuePos++]];
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  await loadData();
-  document.getElementById("next-btn").addEventListener("click", () => showFact(true));
-  showFact(false);
+/* ── Helpers ─────────────────────────────────────────────────────────── */
+
+/** Returns '#1a1a1a' or '#ffffff' for legible text on the given hex bg. */
+function contrastColor(hex) {
+  if (!hex || hex.length < 7) return '#ffffff';
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.52 ? '#1a1a1a' : '#ffffff';
+}
+
+/** Fallback avatar when photo is missing or fails to load. */
+function avatarUrl(naam) {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(naam)}&size=400&background=c8c4bc&color=555555&bold=true`;
+}
+
+/**
+ * Upgrade Tweede Kamer thumbnail URLs to the original full-resolution file.
+ * The JSON contains derivative URLs like /styles/thumbnail/public/path.jpg
+ * Stripping the style path gives the source file at full quality.
+ * Falls back to the original URL if the pattern doesn't match.
+ */
+function getPhotoUrl(member) {
+  const url = member.kamerlid_foto;
+  if (!url) return avatarUrl(member.naam);
+
+  // Remove Drupal image style derivative path + itok token to get original file
+  if (url.includes('/styles/thumbnail/public/')) {
+    return url
+      .replace('/styles/thumbnail/public/', '/')
+      .replace(/[?&]itok=[^&]*/g, '');
+  }
+  return url;
+}
+
+/* ── State machine ───────────────────────────────────────────────────── */
+
+function setState(s) {
+  body.dataset.state = s;
+}
+
+/**
+ * Load a member's data into the DOM without changing state.
+ * Safe to call before transitioning to cover state.
+ */
+function loadMember(member) {
+  currentMember = member;
+
+  const kleur = member.partij_kleur || '#333333';
+
+  // Apply party colour as CSS custom property
+  body.style.setProperty('--party-color', kleur);
+
+  // Photo — use upgraded URL with fallback chain
+  const fullRes  = getPhotoUrl(member);
+  const original = member.kamerlid_foto || null;
+  photo.src = fullRes;
+  photo.alt = member.naam;
+  photo.onerror = () => {
+    // Full-res failed → try original thumbnail
+    if (original && photo.src !== original) {
+      photo.src = original;
+    } else {
+      // Thumbnail also failed → avatar
+      photo.src = avatarUrl(member.naam);
+    }
+    photo.onerror = () => {
+      photo.src = avatarUrl(member.naam);
+      photo.onerror = null;
+    };
+  };
+
+  // Party logo
+  if (member.partij_logo) {
+    partyLogo.src = member.partij_logo;
+    partyLogo.alt = member.partij || '';
+    partyLogo.onerror = () => { partyLogo.src = ''; partyLogo.onerror = null; };
+  } else {
+    partyLogo.src = '';
+  }
+
+  // Identity (visible only in reveal/fact — CSS handles hiding)
+  mpName.textContent     = member.naam   || '';
+  mpPartyLbl.textContent = member.partij || '';
+
+  // Age + woonplaats
+  const metaParts = [];
+  if (member.leeftijd)    metaParts.push(`${member.leeftijd} jaar`);
+  if (member.woonplaats)  metaParts.push(member.woonplaats);
+  mpMeta.textContent = metaParts.join(' · ');
+
+  // Fact card
+  factText.textContent = member.feit || '(geen feit beschikbaar)';
+}
+
+/**
+ * Transition: cover → reveal → fact
+ * Called when user taps "Onthullen →".
+ */
+function doReveal() {
+  // Dismiss the first-visit hint permanently
+  if (!body.hasAttribute('data-hint-dismissed')) {
+    body.setAttribute('data-hint-dismissed', '1');
+    sessionStorage.setItem('kk-hint-dismissed', '1');
+  }
+
+  setState('reveal');
+
+  // After the photo+fact-card animation window, move to FACT state
+  // to show the "Volgende Kamerlid →" button.
+  setTimeout(() => {
+    setState('fact');
+    incrementStreak();
+  }, 500);
+}
+
+/**
+ * Transition: fact → shuffling → cover (next round).
+ * Cycles through random photos with a slowing-down effect, then
+ * settles on the chosen next member.
+ */
+function doNext() {
+  const next = dequeueNext();
+
+  // Snap to shuffling state (hides fact card and buttons instantly)
+  setState('shuffling');
+
+  // Respect reduced-motion preference — skip animation entirely
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    loadMember(next);
+    setState('cover');
+    return;
+  }
+
+  // Shuffle timing: intervals increase (easing out) from fast → slow
+  const intervals = [55, 65, 80, 105, 140, 190, 260];
+  let tick = 0;
+
+  function cycle() {
+    if (tick < intervals.length) {
+      // Flash a random member's photo
+      const rand = kamerleden[Math.floor(Math.random() * kamerleden.length)];
+      photo.src = getPhotoUrl(rand);
+      photo.onerror = () => { photo.src = avatarUrl(rand.naam); photo.onerror = null; };
+      setTimeout(cycle, intervals[tick++]);
+    } else {
+      // Animation complete — load real next member and go to cover
+      loadMember(next);
+      setState('cover');
+    }
+  }
+
+  cycle();
+}
+
+/* ── Share ───────────────────────────────────────────────────────────── */
+
+/** Build the shareable text as specified. */
+function buildShareText() {
+  if (!currentMember) return '';
+  const naam = currentMember.naam  || '';
+  const feit = currentMember.feit  || '';
+  return `Wist jij dit al over ${naam}? 🇳🇱 ${feit} — ken jij alle kamerleden? https://kenjekamerlid.nl`;
+}
+
+waBtn.addEventListener('click', () => {
+  const url = `https://wa.me/?text=${encodeURIComponent(buildShareText())}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
 });
+
+copyBtn.addEventListener('click', async () => {
+  const text = buildShareText();
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // Fallback for older / restricted mobile browsers
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    copyBtn.textContent = '✓ Gekopieerd!';
+    copyBtn.classList.add('is-copied');
+    setTimeout(() => {
+      copyBtn.textContent = '📋 Kopieer';
+      copyBtn.classList.remove('is-copied');
+    }, 1500);
+  } catch (_) {
+    copyBtn.textContent = '❌ Mislukt';
+    setTimeout(() => { copyBtn.textContent = '📋 Kopieer'; }, 1500);
+  }
+});
+
+/* ── Button event listeners ──────────────────────────────────────────── */
+revealBtn.addEventListener('click', doReveal);
+nextBtn.addEventListener('click', doNext);
+
+/* ── Data loading ────────────────────────────────────────────────────── */
+async function loadData() {
+  setState('loading');
+  try {
+    const res = await fetch('kamerleden_basis.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    kamerleden = await res.json();
+
+    if (!Array.isArray(kamerleden) || kamerleden.length === 0) {
+      throw new Error('Geen kamerleden gevonden in JSON.');
+    }
+
+    // Build shuffled queue
+    buildQueue();
+
+    // Restore hint-dismissed flag from session
+    if (sessionStorage.getItem('kk-hint-dismissed')) {
+      body.setAttribute('data-hint-dismissed', '1');
+    }
+
+    // Load first member and enter cover state
+    loadMember(dequeueNext());
+    setState('cover');
+
+  } catch (err) {
+    statusMsg.textContent = `Laden mislukt: ${err.message} — herlaad de pagina.`;
+    setState('error');
+  }
+}
+
+loadData();
